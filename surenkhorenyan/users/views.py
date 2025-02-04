@@ -4,7 +4,7 @@ from users import crud
 from users.schemas import CreatedUser
 
 
-router = APIRouter(prefix='/users', tags=['users'])
+router = APIRouter(prefix='/users', tags=['Users'])
 
 
 @router.post('/')
