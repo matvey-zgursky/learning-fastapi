@@ -5,7 +5,7 @@ from sqlalchemy.engine import Result
 from sqlalchemy.orm import joinedload, selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from core.models import db_helper, User, Profile, Post
+from core.models import db_helper, User, Profile, Post, Order, Product
 
 
 async def create_user(session: AsyncSession, username: str) -> User:
@@ -49,13 +49,9 @@ async def show_users_with_profiles(session: AsyncSession):
         print(user.profile.first_name)
 
 
-async def create_posts(session: AsyncSession, 
-                       user_id: int, 
-                       *posts_titles: str
-                       ) -> list[Post]:
-    posts = [
-        Post(title=title, user_id=user_id) for title in posts_titles
-    ]
+async def create_posts(session: AsyncSession, user_id: int, *posts_titles:
+                       str) -> list[Post]:
+    posts = [Post(title=title, user_id=user_id) for title in posts_titles]
     session.add_all(posts)
     await session.commit()
     print(posts)
@@ -66,8 +62,7 @@ async def get_users_with_posts(session: AsyncSession):
     #stmt = select(User).options(joinedload(User.posts)).order_by(User.id)
     stmt = select(User).options(
         #joinedload(User.posts)
-        selectinload(User.posts)
-        ).order_by(User.id)
+        selectinload(User.posts)).order_by(User.id)
     # #users = await session.scalars(stmt)
     # result: Result = await session.execute(stmt)
     # users = result.scalars()
@@ -81,10 +76,8 @@ async def get_users_with_posts(session: AsyncSession):
 
 
 async def get_users_with_posts_and_profiles(session: AsyncSession):
-    stmt = select(User).options(
-        joinedload(User.profile),
-        selectinload(User.posts)
-        ).order_by(User.id)
+    stmt = select(User).options(joinedload(User.profile),
+                                selectinload(User.posts)).order_by(User.id)
     users = await session.scalars(stmt)
 
     for user in users:
@@ -104,19 +97,32 @@ async def get_posts_with_authors(session: AsyncSession):
 
 
 async def get_profiles_with_users_and_users_with_posts(session: AsyncSession):
-    stmt = (
-        select(Profile)
-        .join(Profile.user)
-        .options(joinedload(Profile.user).selectinload(User.posts))
-        .where(User.username == 'John')
-        .order_by(Profile.id)
-    )
+    stmt = (select(Profile).join(Profile.user).options(
+        joinedload(Profile.user).selectinload(
+            User.posts)).where(User.username == 'John').order_by(Profile.id))
 
     profiles = await session.scalars(stmt)
 
     for profile in profiles:
         print(profile.first_name, profile.user)
         print(profile.user.posts)
+
+
+async def create_order(session: AsyncSession,
+                       promocode: str | None = None) -> Order:
+    order = Order(promocode=promocode)
+    session.add(order)
+    await session.commit()
+
+    return order
+
+
+async def create_product(session: AsyncSession, name: str, description: str,
+                         price: int) -> Product:
+    product = Product(name=name, description=description, price=price)
+    session.add(product)
+    await session.commit()
+    return product
 
 
 async def main_relations(session: AsyncSession):
@@ -134,29 +140,61 @@ async def main_relations(session: AsyncSession):
                               first_name='Sam',
                               last_name='White')
     await show_users_with_profiles(session=session)
-    await create_posts(
-        session,
-        user_john.id,
-        'SQLA 2.0',
-        'SQLA Joins'
-    )
-    await create_posts(
-        session,
-        user_sam.id,
-        'FastAPI intro',
-        'FasAPI Advanced',
-        'FastAPI more'
-    )
+    await create_posts(session, user_john.id, 'SQLA 2.0', 'SQLA Joins')
+    await create_posts(session, user_sam.id, 'FastAPI intro',
+                       'FasAPI Advanced', 'FastAPI more')
     await get_users_with_posts(session=session)
     await get_posts_with_authors(session=session)
     await get_users_with_posts_and_profiles(session=session)
     await get_profiles_with_users_and_users_with_posts(session=session)
 
 
+async def demo_m2m(session: AsyncSession):
+    order_one = await create_order(session=session)
+    order_promo = await create_order(session=session, promocode='promo')
+
+    mouse = await create_product(session=session,
+                                 name='Mouse',
+                                 description='Gaming mouse',
+                                 price=1000)
+
+    keyboard = await create_product(session=session,
+                                    name='Keyboard',
+                                    description='Mechanical keyboard',
+                                    price=2000)
+
+    display = await create_product(session=session,
+                                   name='Display',
+                                   description='4K Display',
+                                   price=30000)
+
+    order_one = await session.scalar(
+        select(Order)
+        .where(Order.id == order_one.id)
+        .options(
+            selectinload(Order.products)
+            )
+        )
+    order_promo = await session.scalar(
+        select(Order)
+        .where(Order.id == order_promo.id)
+        .options(
+            selectinload(Order.products)
+            )
+        )
+
+    order_one.products.append(mouse)
+    order_one.products.append(keyboard)
+    order_promo.products.append(keyboard)
+    order_promo.products.append(display)
+
+    await session.commit()
+
 
 async def main():
     async with db_helper.session_factory() as session:
-        await main_relations(session=session)
+        #await main_relations(session=session)
+        await demo_m2m(session=session)
 
 
 if __name__ == "__main__":
