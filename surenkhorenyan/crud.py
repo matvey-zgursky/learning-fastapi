@@ -178,6 +178,15 @@ async def get_orders_with_products(session: AsyncSession) -> list[Order]:
 
     return list(orders)
 
+
+async def demo_get_orders_wiht_products_through_secondary(session: AsyncSession)
+    orders = await get_orders_with_products(session=session)
+    for order in orders:
+        print(order.id, order.promocode, order.created_at, 'product:')
+        for product in order.products:
+            print('-', product.id, product.name, product.price)
+
+
 async def main_relations(session: AsyncSession):
     await create_user(session=session, username='John')
     await create_user(session=session, username='alice')
@@ -204,11 +213,7 @@ async def main_relations(session: AsyncSession):
 
 async def demo_m2m(session: AsyncSession):
     # await create_orders_and_products(session=session)
-    orders = await get_orders_with_products(session=session)
-    for order in orders:
-        print(order.id, order.promocode, order.created_at, 'product:')
-        for product in order.products:
-            print('-', product.id, product.name, product.price)
+    await demo_get_orders_wiht_products_through_secondary(session=session)
 
 
 async def main():
