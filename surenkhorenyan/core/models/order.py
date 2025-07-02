@@ -13,10 +13,9 @@ if TYPE_CHECKING:
 
 
 class Order(Base):
-    promocode: Mapped[str | None ]
+    promocode: Mapped[str | None]
     created_at: Mapped[datetime] = mapped_column(
-        server_default=func.now(),
-        default=datetime.utcnow
+        server_default=func.now(), default=datetime.utcnow
     )
     # products: Mapped[list["Product"]] = relationship(
     #     secondary='order_product_association',
@@ -24,6 +23,5 @@ class Order(Base):
     # )
 
     products_details: Mapped[list["OrderProductAssociation"]] = relationship(
-        back_populates='order'
+        back_populates="order"
     )
-

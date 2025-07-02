@@ -18,6 +18,6 @@ class Product(Base):
     #     secondary='order_product_association',
     #     back_populates='products'
     # )
-    orders_details: Mapped[list['OrderProductAssociation']] = relationship(
-        back_populates='product'
+    orders_details: Mapped[list["OrderProductAssociation"]] = relationship(
+        back_populates="product"
     )

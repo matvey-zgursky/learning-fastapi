@@ -1,13 +1,13 @@
 __all__ = (
-    'Base',
-    'DatabaseHelper',
-    'db_helper',
-    'Product',
-    'User',
-    'Post',
-    'Profile',
-    'Order',
-    'OrderProductAssociation',
+    "Base",
+    "DatabaseHelper",
+    "db_helper",
+    "Product",
+    "User",
+    "Post",
+    "Profile",
+    "Order",
+    "OrderProductAssociation",
 )
 
 from .base import Base
