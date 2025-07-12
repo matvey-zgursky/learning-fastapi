@@ -1,6 +1,9 @@
 from fastapi import (
     APIRouter,
     Depends,
+    Form,
+    HTTPException,
+    status,
 )
 
 from pydantic import BaseModel
@@ -14,7 +17,7 @@ class TokenInfo(BaseModel):
     token_type: str
 
 
-router = APIRouter(prefix="jwt", tags=["JWT"])
+router = APIRouter(prefix="/jwt", tags=["JWT"])
 
 john = UserSchema(
     username="john",
@@ -34,8 +37,31 @@ users_db: dict[str, UserSchema] = {
 }
 
 
-def validate_auth_user():
-    pass
+def validate_auth_user(
+    username: str = Form(),
+    password: str = Form(),
+):
+    unauthed_exc = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="invalid username or password",
+    )
+    if not (user := users_db.get(username)):
+        raise unauthed_exc
+
+    if not auth_utils.validate_password(
+        password=password,
+        hashed_password=user.password,
+    ):
+        raise unauthed_exc
+
+    if not user.active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="user inactive",
+        )
+
+    return user
+
 
 @router.post("/login/", response_model=TokenInfo)
 def auth_user_issue_jwt(

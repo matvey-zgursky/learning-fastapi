@@ -27,7 +27,7 @@ def encode_jwt(
         iat=now,
     )
     encoded = jwt.encode(
-        payload,
+        to_encode,
         private_key,
         algorithm=algorithm,
     )

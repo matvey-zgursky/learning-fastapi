@@ -15,4 +15,4 @@ class UserSchema(BaseModel):
     username: str 
     password: bytes
     email: EmailStr | None = None
-    activa: bool = True
+    active: bool = True
