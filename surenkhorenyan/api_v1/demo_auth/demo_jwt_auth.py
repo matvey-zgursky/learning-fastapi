@@ -8,14 +8,21 @@ from fastapi import (
     status,
 )
 
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.security import (
+    HTTPBearer,
+    HTTPAuthorizationCredentials,
+    OAuth2PasswordBearer,
+)
 from pydantic import BaseModel
 
 from auth import utils as auth_utils
 from users.schemas import UserSchema
 
 
-http_bearer = HTTPBearer()
+# http_bearer = HTTPBearer()
+oauth2_scheme = OAuth2PasswordBearer(
+    tokenUrl="/api/v1/demo_auth/jwt/login/",
+)
 
 
 class TokenInfo(BaseModel):
@@ -70,9 +77,10 @@ def validate_auth_user(
 
 
 def get_current_token_payload(
-    credentials: HTTPAuthorizationCredentials = Depends(http_bearer),
+    #credentials: HTTPAuthorizationCredentials = Depends(http_bearer),
+    token: str = Depends(oauth2_scheme),
 ) -> UserSchema:
-    token = credentials.credentials
+    #token = credentials.credentials
     try:
         payload = auth_utils.decode_jwt(
             token=token,
@@ -82,7 +90,7 @@ def get_current_token_payload(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail=f"invald token error: {e}",
         )
-    return payload 
+    return payload
 
 
 def get_current_auth_user(
@@ -91,19 +99,19 @@ def get_current_auth_user(
     username: str | None = payload.get("sub")
     if user := users_db.get(username):
         return user
-    
+
     raise HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="token invalid (user not found)",
     )
-    
+
 
 def get_current_active_auth_user(
     user: UserSchema = Depends(get_current_auth_user),
 ):
     if user.active:
         return user
-    
+
     raise HTTPException(
         status_code=status.HTTP_403_FORBIDDEN,
         detail="user inactive",
