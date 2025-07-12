@@ -89,7 +89,7 @@ def get_current_auth_user(
     payload: dict = Depends(get_current_token_payload),
 ) -> UserSchema:
     username: str | None = payload.get("sub")
-    if not (user := users_db.get(username)):
+    if user := users_db.get(username):
         return user
     
     raise HTTPException(
@@ -128,9 +128,12 @@ def auth_user_issue_jwt(
 
 @router.get("/users/me/")
 def auth_user_check_self_info(
+    payload: dict = Depends(get_current_token_payload),
     user: UserSchema = Depends(get_current_active_auth_user),
 ):
+    iat = payload.get("iat")
     return {
         "username": user.username,
         "email": user.email,
+        "logged_in_at": iat,
     }
