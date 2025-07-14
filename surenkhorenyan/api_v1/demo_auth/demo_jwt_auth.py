@@ -17,6 +17,8 @@ from pydantic import BaseModel
 
 from auth import utils as auth_utils
 from api_v1.demo_auth.helpers import (
+    TOKEN_TYPE_FIELD,
+    ACCESS_TOKEN_TYPE,
     create_access_token,
     create_refresh_token,
 )
@@ -86,10 +88,8 @@ def validate_auth_user(
 
 
 def get_current_token_payload(
-    # credentials: HTTPAuthorizationCredentials = Depends(http_bearer),
     token: str = Depends(oauth2_scheme),
 ) -> UserSchema:
-    # token = credentials.credentials
     try:
         payload = auth_utils.decode_jwt(
             token=token,
@@ -105,6 +105,12 @@ def get_current_token_payload(
 def get_current_auth_user(
     payload: dict = Depends(get_current_token_payload),
 ) -> UserSchema:
+    token_type = payload.get(TOKEN_TYPE_FIELD)
+    if token_type != ACCESS_TOKEN_TYPE:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=f"invalid tiken type {token_type!r} expected {ACCESS_TOKEN_TYPE!r}",
+        )
     username: str | None = payload.get("sub")
     if user := users_db.get(username):
         return user
