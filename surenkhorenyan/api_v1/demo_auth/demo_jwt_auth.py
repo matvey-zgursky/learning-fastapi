@@ -23,7 +23,7 @@ from api_v1.demo_auth.helpers import (
 from users.schemas import UserSchema
 
 
-# http_bearer = HTTPBearer()
+http_bearer = HTTPBearer(auto_error=False)
 oauth2_scheme = OAuth2PasswordBearer(
     tokenUrl="/api/v1/demo_auth/jwt/login/",
 )
@@ -35,7 +35,11 @@ class TokenInfo(BaseModel):
     token_type: str = "Bearer"
 
 
-router = APIRouter(prefix="/jwt", tags=["JWT"])
+router = APIRouter(
+    prefix="/jwt",
+    tags=["JWT"],
+    dependencies=[Depends(http_bearer)],
+)
 
 john = UserSchema(
     username="john",
