@@ -16,6 +16,10 @@ from fastapi.security import (
 from pydantic import BaseModel
 
 from auth import utils as auth_utils
+from api_v1.demo_auth.helpers import (
+    create_access_token,
+    create_refresh_token,
+)
 from users.schemas import UserSchema
 
 
@@ -27,7 +31,8 @@ oauth2_scheme = OAuth2PasswordBearer(
 
 class TokenInfo(BaseModel):
     access_token: str
-    token_type: str
+    refresh_token: str
+    token_type: str = "Bearer"
 
 
 router = APIRouter(prefix="/jwt", tags=["JWT"])
@@ -77,10 +82,10 @@ def validate_auth_user(
 
 
 def get_current_token_payload(
-    #credentials: HTTPAuthorizationCredentials = Depends(http_bearer),
+    # credentials: HTTPAuthorizationCredentials = Depends(http_bearer),
     token: str = Depends(oauth2_scheme),
 ) -> UserSchema:
-    #token = credentials.credentials
+    # token = credentials.credentials
     try:
         payload = auth_utils.decode_jwt(
             token=token,
@@ -122,15 +127,11 @@ def get_current_active_auth_user(
 def auth_user_issue_jwt(
     user: UserSchema = Depends(validate_auth_user),
 ):
-    jwt_payload = {
-        "sub": user.username,
-        "username": user.username,
-        "email": user.email,
-    }
-    token = auth_utils.encode_jwt(jwt_payload)
+    access_token = create_access_token(user=user)
+    refresh_token = create_refresh_token(user=user)
     return TokenInfo(
-        access_token=token,
-        token_type="Bearer",
+        access_token=access_token,
+        refresh_token=refresh_token,
     )
 
 
